@@ -16,9 +16,6 @@ LICENSE
 # Configurações
 *.config.js
 *.config.ts
-.editorconfig
-.prettierrc
-.eslintrc
 
 # Ambiente
 .env
