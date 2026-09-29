@@ -1,5 +1,5 @@
 // src/app/features/store/product-form/product-form.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,6 +16,7 @@ import { Product } from '../../../core/models/ProductModel/product.model';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './product-form.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./product-form.scss'],
 })
 export class ProductForm implements OnInit {
@@ -50,8 +51,7 @@ export class ProductForm implements OnInit {
     private alertService: AlertService,
     private categoryService: CategoryService,
     private productService: ProductService,
-  ) {
-  }
+  ) {}
 
   ngOnInit(): void {
     this.route.params.subscribe((params) => {
@@ -110,7 +110,7 @@ export class ProductForm implements OnInit {
             freeShipping: product.freeShipping || false,
           };
 
-          const category = this.categories.find(c => c.name === product.category);
+          const category = this.categories.find((c) => c.name === product.category);
           if (category) {
             this.product.categorySlug = category.slug;
           }
@@ -156,7 +156,7 @@ export class ProductForm implements OnInit {
       next: (categories: Category[]) => {
         this.categories = categories.filter((cat) => cat.active);
         if (this.isEditing && this.product.category) {
-          const category = this.categories.find(c => c.name === this.product.category);
+          const category = this.categories.find((c) => c.name === this.product.category);
           if (category) {
             this.product.categorySlug = category.slug;
           }
@@ -252,7 +252,7 @@ export class ProductForm implements OnInit {
     const select = event.target as HTMLSelectElement;
     const slug = select.value;
 
-    const category = this.categories.find(c => c.slug === slug);
+    const category = this.categories.find((c) => c.slug === slug);
     if (category) {
       this.product.category = category.name;
       this.product.categorySlug = slug;
@@ -268,7 +268,9 @@ export class ProductForm implements OnInit {
 
   getDiscountPercentage(): number {
     if (this.isOnSale()) {
-      return Math.round(((this.product.oldPrice - this.product.price) / this.product.oldPrice) * 100);
+      return Math.round(
+        ((this.product.oldPrice - this.product.price) / this.product.oldPrice) * 100,
+      );
     }
     return 0;
   }
@@ -304,9 +306,10 @@ export class ProductForm implements OnInit {
       condition: this.product.condition,
       location: this.product.location,
       stock: this.product.stock,
-      images: images.length > 0
-        ? images
-        : ['https://via.placeholder.com/300x300/667eea/ffffff?text=Sem+Imagem'],
+      images:
+        images.length > 0
+          ? images
+          : ['https://via.placeholder.com/300x300/667eea/ffffff?text=Sem+Imagem'],
       freeShipping: this.product.freeShipping,
       seller: {
         id: userId, // 🔥 ID do usuário (string)
@@ -374,7 +377,7 @@ export class ProductForm implements OnInit {
     if (this.product.oldPrice > 0 && this.product.oldPrice <= this.product.price) {
       this.alertService.warning(
         'Preço antigo inválido',
-        'O preço antigo deve ser maior que o preço atual para criar uma oferta.'
+        'O preço antigo deve ser maior que o preço atual para criar uma oferta.',
       );
       return false;
     }
