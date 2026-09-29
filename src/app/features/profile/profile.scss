@@ -1,0 +1,226 @@
+// src/app/features/profile/profile.scss
+.avatar-wrapper {
+  .avatar-placeholder {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  // 🔥 Ajustar o componente de upload para o perfil
+  ::ng-deep app-image-upload {
+    .image-upload-container {
+      display: flex;
+      justify-content: center;
+    }
+
+    .upload-area {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid #dee2e6;
+      background: #f8f9fa;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+      &:hover:not(.processing) {
+        border-color: #667eea;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+      }
+
+      &.has-image {
+        border-color: #667eea;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+      }
+    }
+
+    .placeholder-content {
+      i {
+        font-size: 2rem;
+        color: #adb5bd;
+      }
+
+      .placeholder-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #495057;
+      }
+
+      .placeholder-hint,
+      .placeholder-size {
+        display: none;
+      }
+    }
+
+    .upload-hints {
+      display: none;
+    }
+
+    .btn-remove {
+      top: 0;
+      right: 0;
+    }
+  }
+}
+
+.card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.card-body {
+  padding: 30px !important;
+}
+
+.form-control {
+  border-radius: 8px;
+  padding: 10px 16px;
+  transition: all 0.3s ease;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  &:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+  }
+}
+
+.form-select {
+  border-radius: 8px;
+  padding: 10px 16px;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+}
+
+.input-group {
+  .input-group-text {
+    border-radius: 8px 0 0 8px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+
+    i {
+      color: #6c757d;
+    }
+  }
+
+  .form-control {
+    border-radius: 0 8px 8px 0;
+
+    &:focus {
+      border-color: #667eea;
+      box-shadow: none;
+    }
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  transition: all 0.3s ease;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.btn-outline-secondary {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.breadcrumb {
+  background: transparent;
+  padding: 0;
+
+  .breadcrumb-item {
+    a {
+      color: #667eea;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    &.active {
+      color: #6c757d;
+    }
+  }
+}
+
+.form-check-input {
+  &:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+
+  &.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  }
+
+  &.bg-success {
+    background: linear-gradient(135deg, #00b894 0%, #00a86b 100%) !important;
+  }
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .card-body {
+    padding: 20px !important;
+  }
+
+  .btn-lg {
+    font-size: 0.9rem;
+    padding: 10px 20px;
+  }
+
+  .d-flex.gap-3 {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
+  }
+
+  .avatar-wrapper {
+    ::ng-deep app-image-upload {
+      .upload-area {
+        width: 100px;
+        height: 100px;
+      }
+
+      .placeholder-content {
+        i {
+          font-size: 1.6rem;
+        }
+
+        .placeholder-text {
+          font-size: 0.7rem;
+        }
+      }
+    }
+  }
+}

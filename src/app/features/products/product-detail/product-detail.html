@@ -1,0 +1,564 @@
+<!-- src/app/features/products/product-detail/product-detail.html -->
+<div *ngIf="loading" class="container py-5 text-center">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Carregando...</span>
+  </div>
+</div>
+
+<div *ngIf="!loading && product" class="container py-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/home">Home</a></li>
+      <li class="breadcrumb-item">
+        <a [routerLink]="['/categoria', getCategorySlug()]">
+          {{ product.category }}
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <!-- Galeria de Imagens -->
+    <div class="col-lg-6">
+      <div class="product-gallery">
+        <!-- Imagem Principal -->
+        <div class="main-image-container position-relative">
+          <img
+            [src]="product.images[selectedImage]"
+            [alt]="product.name"
+            class="img-fluid main-image"
+            (error)="
+              product.images[selectedImage] =
+                'https://via.placeholder.com/600x400/667eea/ffffff?text=Imagem+Indisponível'
+            "
+          />
+
+          <!-- Badges -->
+          <span
+            class="position-absolute top-0 start-0 m-3 badge bg-danger fs-6 px-3 py-2 discount-badge"
+            *ngIf="getDiscountPercentage() > 0"
+          >
+            <i class="bi bi-tag-fill me-2"></i>
+            -{{ getDiscountPercentage() }}% OFF
+          </span>
+          <span
+            class="position-absolute top-0 end-0 m-3 badge fs-6 px-3 py-2"
+            [class]="getConditionClass()"
+          >
+            {{ getConditionText() }}
+          </span>
+
+          <!-- Botão Favorito -->
+          <button
+            class="btn-favorite position-absolute bottom-0 end-0 m-4"
+            (click)="toggleFavorite()"
+          >
+            <i
+              class="bi fs-2"
+              [class.bi-heart]="!isFavorite"
+              [class.bi-heart-fill]="isFavorite"
+            ></i>
+          </button>
+        </div>
+
+        <!-- Miniaturas -->
+        <div class="thumbnails mt-3 d-flex gap-2">
+          <div
+            *ngFor="let image of product.images; let i = index"
+            class="thumbnail-wrapper"
+            [class.active]="i === selectedImage"
+            (click)="changeImage(i)"
+          >
+            <img
+              [src]="image"
+              [alt]="product.name + ' ' + (i + 1)"
+              class="img-fluid thumbnail"
+              (error)="
+                product.images[i] =
+                  'https://via.placeholder.com/100x100/667eea/ffffff?text=Sem+Imagem'
+              "
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informações do Produto -->
+    <div class="col-lg-6">
+      <!-- Título e Avaliação -->
+      <h1 class="product-title">{{ product.name }}</h1>
+
+      <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+        <!-- 🔥 Estrelas reais das avaliações -->
+        <div class="d-flex align-items-center">
+          <i
+            class="bi me-1"
+            *ngFor="let star of getReviewStars()"
+            [class.bi-star-fill]="star <= (reviewSummary.average || 0)"
+            [class.bi-star]="star > (reviewSummary.average || 0)"
+            [class.text-warning]="star <= (reviewSummary.average || 0)"
+            [class.text-muted]="star > (reviewSummary.average || 0)"
+          ></i>
+          <span class="ms-1 fw-bold">{{ reviewSummary.average || 0 }}</span>
+          <span class="text-muted ms-2 small">
+            ({{ reviewSummary.total }} avaliaç{{ reviewSummary.total === 1 ? 'ão' : 'ões' }})
+          </span>
+        </div>
+        <span class="text-muted">|</span>
+        <span class="text-muted">{{ product.seller.sales || 0 }} vendas</span>
+        <span class="text-muted">|</span>
+        <span class="text-muted">
+          <i class="bi bi-geo-alt-fill me-1"></i>{{ product.location }}
+        </span>
+      </div>
+
+      <!-- Preço com efeito de desconto -->
+      <div
+        class="price-section p-4 rounded-3 mb-4"
+        [class.bg-light]="!isOnSale()"
+        [class.bg-success-subtle]="isOnSale()"
+      >
+        <!-- Preço Antigo (riscado) -->
+        <div *ngIf="isOnSale()" class="d-flex align-items-center gap-3 mb-2">
+          <span class="text-muted text-decoration-line-through old-price-detail fs-4">
+            {{ formatPrice(product.oldPrice!) }}
+          </span>
+          <span class="badge bg-danger fs-6 px-3 py-2 discount-badge">
+            <i class="bi bi-tag-fill me-2"></i>
+            -{{ getDiscountPercentage() }}% OFF
+          </span>
+        </div>
+
+        <!-- Preço Atual -->
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <span
+            class="display-6 fw-bold"
+            [class.text-primary]="!isOnSale()"
+            [class.text-danger]="isOnSale()"
+          >
+            {{ formatPrice(product.price) }}
+          </span>
+
+          <span *ngIf="isOnSale()" class="badge bg-success fs-6 px-3 py-2 sale-badge">
+            <i class="bi bi-zap me-1"></i>
+            Oferta Especial
+          </span>
+
+          <span class="badge bg-info fs-6 px-3 py-2" *ngIf="hasFreeShipping()">
+            <i class="bi bi-truck me-1"></i>Frete Grátis
+          </span>
+        </div>
+
+        <!-- Economia -->
+        <div *ngIf="isOnSale()" class="mt-2 text-success fw-bold">
+          <i class="bi bi-wallet2 me-1"></i>
+          Você economiza: {{ formatPrice(product.oldPrice! - product.price) }}
+        </div>
+
+        <div class="small text-muted mt-2">
+          <span [class]="getStockClass()">
+            <i class="bi bi-circle-fill me-1" style="font-size: 8px"></i>
+            {{ getStockStatus() }}
+          </span>
+          <span class="mx-2">|</span>
+          <span>{{ product.stock }} unidades disponíveis</span>
+        </div>
+      </div>
+
+      <!-- Descrição -->
+      <div class="description-section mb-4">
+        <h6 class="fw-bold mb-2">Descrição do produto</h6>
+        <p class="text-secondary" [class.truncated]="!showFullDescription">
+          {{ product.description }}
+        </p>
+        <button
+          class="btn btn-link text-decoration-none p-0"
+          (click)="showFullDescription = !showFullDescription"
+        >
+          {{ showFullDescription ? 'Ver menos' : 'Ver mais' }}
+          <i
+            class="bi"
+            [class.bi-chevron-up]="showFullDescription"
+            [class.bi-chevron-down]="!showFullDescription"
+          ></i>
+        </button>
+      </div>
+
+      <!-- Quantidade -->
+      <div class="quantity-section mb-4">
+        <label class="fw-bold mb-2">Quantidade</label>
+        <div class="d-flex align-items-center gap-3">
+          <div class="input-group" style="width: 140px">
+            <button
+              class="btn btn-outline-secondary"
+              (click)="decreaseQuantity()"
+              [disabled]="quantity <= 1"
+            >
+              <i class="bi bi-dash"></i>
+            </button>
+            <input
+              type="number"
+              class="form-control text-center"
+              [(ngModel)]="quantity"
+              min="1"
+              [max]="product.stock"
+              (change)="quantity = Math.min(Math.max(quantity, 1), product.stock)"
+            />
+            <button
+              class="btn btn-outline-secondary"
+              (click)="increaseQuantity()"
+              [disabled]="quantity >= product.stock"
+            >
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+          <span class="text-muted small">Máx. {{ product.stock }} unidades</span>
+        </div>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div class="action-buttons d-flex flex-column flex-sm-row gap-3">
+        <button
+          class="btn btn-lg flex-grow-1 rounded-pill py-3"
+          [class.btn-primary]="!isOnSale()"
+          [class.btn-success]="isOnSale()"
+          (click)="addToCart()"
+        >
+          <i class="bi bi-cart-plus me-2"></i>
+          Adicionar ao Carrinho
+          <span *ngIf="isOnSale()" class="ms-2 badge bg-light text-success">
+            <i class="bi bi-tag me-1"></i>Oferta!
+          </span>
+        </button>
+        <button class="btn btn-success btn-lg flex-grow-1 rounded-pill py-3" (click)="buyNow()">
+          <i class="bi bi-lightning-fill me-2"></i>
+          Comprar Agora
+        </button>
+      </div>
+
+      <!-- Botão "Perguntar sobre o produto" -->
+      <div class="chat-buttons mt-4" *ngIf="!isOwner">
+        <button
+          class="btn btn-outline-primary rounded-pill w-100 py-2"
+          [routerLink]="['/chat']"
+          [queryParams]="{
+            productId: product.id,
+            sellerId: product.seller.id || product.storeId,
+            productName: product.name,
+            sellerName: getSellerName(),
+          }"
+        >
+          <i class="bi bi-chat-dots me-2"></i>
+          Perguntar sobre o produto
+        </button>
+        <small class="text-muted d-block mt-2 text-center">
+          <i class="bi bi-info-circle me-1"></i>
+          Tire dúvidas sobre este produto diretamente com o vendedor
+        </small>
+      </div>
+
+      <!-- Informações adicionais -->
+      <div class="additional-info mt-4 pt-3 border-top">
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <i class="bi bi-shield-check fs-5"></i>
+              <span>Compra segura</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <i class="bi bi-arrow-repeat fs-5"></i>
+              <span>Garantia de 30 dias</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <i class="bi bi-credit-card fs-5"></i>
+              <span>Pagamento seguro</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <i class="bi bi-truck fs-5"></i>
+              <span>Entrega rápida</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔥 Seção do Vendedor - COM LOGO DA LOJA -->
+  <div class="seller-section mt-5 p-4 bg-light rounded-3">
+    <h5 class="fw-bold mb-3">
+      <i class="bi bi-shop me-2"></i>
+      Sobre o Vendedor
+    </h5>
+    <div class="d-flex align-items-center gap-4 flex-wrap">
+      <div class="d-flex align-items-center gap-3">
+        <!-- 🔥 Avatar/Logo da Loja -->
+        <div class="seller-avatar-wrapper">
+          <img
+            *ngIf="hasLogo()"
+            [src]="getStoreLogo()"
+            [alt]="getSellerName()"
+            class="seller-avatar-img"
+            (error)="onLogoError()"
+          />
+          <div *ngIf="!hasLogo()" class="seller-avatar-initials">
+            {{ getInitials(getSellerName()) }}
+          </div>
+        </div>
+        <div>
+          <a
+            [routerLink]="['/loja', product.storeId]"
+            class="text-decoration-none"
+            title="Visitar loja do vendedor"
+          >
+            <h6 class="mb-0 text-primary fw-bold hover-underline">
+              {{ getSellerName() }}
+              <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 12px"></i>
+            </h6>
+          </a>
+          <div class="d-flex align-items-center gap-2 small text-muted">
+            <span>
+              <i class="bi bi-star-fill text-warning me-1"></i>
+              {{ getSellerRating() }}
+            </span>
+            <span>|</span>
+            <span>{{ getSellerSales() }} vendas</span>
+            <span>|</span>
+            <span>Membro desde {{ getSellerMemberSince() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 ms-auto">
+        <button
+          class="btn btn-outline-primary rounded-pill"
+          (click)="goToStore()"
+          title="Ver todos os produtos do vendedor"
+        >
+          <i class="bi bi-shop me-1"></i> Visitar loja
+        </button>
+
+        <button
+          *ngIf="!isOwner"
+          class="btn btn-outline-success rounded-pill"
+          [routerLink]="['/chat']"
+          [queryParams]="{
+            sellerId: product.seller.id || product.storeId,
+            sellerName: getSellerName(),
+            productId: product.id,
+            store: 'true',
+          }"
+        >
+          <i class="bi bi-chat me-1"></i> Perguntar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔥 NOVA Seção de AVALIAÇÕES -->
+  <div class="reviews-section mt-5" *ngIf="reviews.length > 0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0">
+        <i class="bi bi-star-fill text-warning me-2"></i>
+        Avaliações dos Clientes
+      </h4>
+      <span class="badge bg-primary fs-6 px-3 py-2">
+        {{ reviewSummary.total }} avaliaç{{ reviewSummary.total === 1 ? 'ão' : 'ões' }}
+      </span>
+    </div>
+
+    <!-- Resumo: média + distribuição -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-4">
+        <div class="row align-items-center g-4">
+
+          <!-- Média grande à esquerda -->
+          <div class="col-md-4 text-center border-end">
+            <div class="display-3 fw-bold text-primary mb-1">
+              {{ reviewSummary.average }}
+            </div>
+            <div class="mb-2">
+              <i
+                *ngFor="let star of getReviewStars()"
+                class="bi fs-5 me-1"
+                [class.bi-star-fill]="star <= reviewSummary.average"
+                [class.bi-star]="star > reviewSummary.average"
+                [class.text-warning]="star <= reviewSummary.average"
+                [class.text-muted]="star > reviewSummary.average"
+              ></i>
+            </div>
+            <p class="text-muted small mb-0">
+              Baseado em {{ reviewSummary.total }} avaliaç{{ reviewSummary.total === 1 ? 'ão' : 'ões' }}
+            </p>
+          </div>
+
+          <!-- Distribuição por estrela -->
+          <div class="col-md-8">
+            <div *ngFor="let rating of [5, 4, 3, 2, 1]" class="d-flex align-items-center gap-2 mb-2">
+              <span class="text-muted small" style="min-width: 60px;">
+                {{ rating }} <i class="bi bi-star-fill text-warning"></i>
+              </span>
+              <div class="progress flex-grow-1" style="height: 8px;">
+                <div
+                  class="progress-bar bg-warning"
+                  role="progressbar"
+                  [style.width.%]="getPercentForRating(rating)"
+                  [attr.aria-valuenow]="getPercentForRating(rating)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              <span class="text-muted small" style="min-width: 45px; text-align: right;">
+                {{ getPercentForRating(rating) }}%
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de avaliações -->
+    <div class="reviews-list">
+      <div
+        *ngFor="let review of getVisibleReviews()"
+        class="card border-0 shadow-sm mb-3 review-card"
+      >
+        <div class="card-body p-4">
+          <div class="d-flex gap-3">
+
+            <!-- Avatar do avaliador -->
+            <div class="reviewer-avatar-wrapper">
+              <img
+                *ngIf="review.userAvatar"
+                [src]="review.userAvatar"
+                [alt]="review.userName"
+                class="reviewer-avatar-img"
+                (error)="onReviewerAvatarError($event, review.userName)"
+              />
+              <div *ngIf="!review.userAvatar" class="reviewer-avatar-initials">
+                {{ getReviewerInitials(review.userName) }}
+              </div>
+            </div>
+
+            <div class="flex-grow-1">
+
+              <!-- Cabeçalho -->
+              <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                <div>
+                  <strong class="d-block">{{ review.userName }}</strong>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="text-warning">
+                      <i
+                        *ngFor="let star of getReviewStars()"
+                        class="bi me-1"
+                        [class.bi-star-fill]="star <= review.rating"
+                        [class.bi-star]="star > review.rating"
+                      ></i>
+                    </span>
+                    <small class="text-muted">{{ formatReviewDate(review.createdAt) }}</small>
+                    <span *ngIf="review.isEdited" class="badge bg-secondary small">editado</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comentário -->
+              <p *ngIf="review.comment" class="mb-2">{{ review.comment }}</p>
+              <p *ngIf="!review.comment" class="text-muted fst-italic small mb-2">
+                (Sem comentário)
+              </p>
+
+              <!-- Resposta do vendedor -->
+              <div *ngIf="review.sellerReply" class="seller-reply mt-3 p-3 rounded"
+                   style="background-color: #e7f3ff; border-left: 3px solid #0066B3;">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <i class="bi bi-shop text-primary"></i>
+                  <strong class="text-primary small">{{ review.sellerName }} respondeu:</strong>
+                  <small class="text-muted">{{ formatReviewDate(review.sellerReply.createdAt) }}</small>
+                </div>
+                <p class="mb-0 small">{{ review.sellerReply.content }}</p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botão "Ver mais" -->
+      <div *ngIf="hasMoreReviews()" class="text-center mt-3">
+        <button
+          class="btn btn-outline-primary rounded-pill px-4"
+          (click)="toggleShowAllReviews()"
+        >
+          <span *ngIf="!showAllReviews">
+            <i class="bi bi-plus-circle me-1"></i>
+            Ver todas as {{ reviews.length }} avaliações
+          </span>
+          <span *ngIf="showAllReviews">
+            <i class="bi bi-dash-circle me-1"></i>
+            Ver menos
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensagem quando não há avaliações -->
+  <div *ngIf="reviews.length === 0" class="reviews-section mt-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-star display-1 text-muted"></i>
+        <h5 class="mt-3">Ainda não há avaliações</h5>
+        <p class="text-muted mb-0">
+          Este produto ainda não foi avaliado. Seja o primeiro a avaliar após a compra!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔥 Seção de Comentários Públicos -->
+  <div class="comments-wrapper mt-5" *ngIf="product && product.id">
+    <app-comments [productId]="product.id" [storeId]="product.storeId || ''"></app-comments>
+  </div>
+
+  <!-- Produtos Relacionados -->
+  <div *ngIf="relatedProducts.length > 0" class="related-products mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold">Produtos Relacionados</h4>
+      <a
+        [routerLink]="['/categoria', getCategorySlug()]"
+        class="btn btn-outline-primary rounded-pill btn-sm"
+      >
+        Ver todos
+        <i class="bi bi-arrow-right-short"></i>
+      </a>
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-3 col-md-4 col-sm-6 col-12" *ngFor="let related of relatedProducts">
+        <app-product-card
+          [product]="related"
+          (favoriteToggle)="loadRelatedProducts(product.category, product.id)"
+        >
+        </app-product-card>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Produto não encontrado -->
+<div *ngIf="!loading && !product" class="container py-5 text-center">
+  <i class="bi bi-box display-1 text-muted"></i>
+  <h3 class="mt-3">Produto não encontrado</h3>
+  <p class="text-muted">O produto que você está procurando não existe ou foi removido.</p>
+  <a routerLink="/home" class="btn btn-primary rounded-pill">
+    <i class="bi bi-arrow-left me-2"></i>
+    Voltar para Home
+  </a>
+</div>

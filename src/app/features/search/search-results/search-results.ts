@@ -1,0 +1,205 @@
+// src/app/features/search/search-results/search-results.ts
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Product } from '../../../core/models/ProductModel/product.model';
+import { ProductService, ProductResponse } from '../../../core/services/product.service';
+import { ProductCard } from '../../../shared/components/product-card/product-card';
+import { SearchFilters } from '../search-filters/search-filters';
+import { Pagination } from '../../../shared/components/pagination/pagination';
+import { Subscription } from 'rxjs';
+import { ProductFilters } from '../../../core/models/ProductModel/product-filters.model';
+
+@Component({
+  selector: 'app-search-results',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ProductCard, SearchFilters, Pagination, RouterLink],
+  templateUrl: './search-results.html',
+  styleUrls: ['./search-results.scss'],
+})
+export class SearchResults implements OnInit, OnDestroy {
+  products: Product[] = [];
+  loading = true;
+  totalProducts = 0;
+  currentPage = 1;
+  itemsPerPage = 12;
+  totalPages = 1;
+
+  filters: ProductFilters = {
+    sortBy: 'newest',
+    limit: 12,
+    page: 1,
+    hasDiscount: false,
+    freeShipping: false,
+    inStock: false,
+  };
+
+  showFilters = false;
+  private routeSub: Subscription = new Subscription();
+  private filterSub: Subscription = new Subscription();
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private productService: ProductService,
+  ) {}
+
+  ngOnInit(): void {
+    this.routeSub = this.route.queryParams.subscribe((params) => {
+      this.filters = {
+        sortBy: 'newest',
+        limit: this.itemsPerPage,
+        page: 1,
+        hasDiscount: false,
+        freeShipping: false,
+        inStock: false,
+      };
+
+      if (params['q']) this.filters.search = params['q'];
+      if (params['category']) this.filters.category = params['category'];
+      if (params['page']) {
+        this.currentPage = +params['page'];
+        this.filters.page = this.currentPage;
+      }
+      if (params['sort']) this.filters.sortBy = params['sort'];
+      if (params['limit']) {
+        this.itemsPerPage = +params['limit'];
+        this.filters.limit = this.itemsPerPage;
+      }
+      // 🔥 NOVO: suporte a state e city nos queryParams
+      if (params['state']) this.filters.state = params['state'];
+      if (params['city']) this.filters.city = params['city'];
+
+      this.loadProducts();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub.unsubscribe();
+    this.filterSub.unsubscribe();
+    this.productService.invalidateCache();
+  }
+
+  loadProducts(): void {
+    this.loading = true;
+
+    this.filters.page = this.currentPage;
+    this.filters.limit = this.itemsPerPage;
+
+    if (this.filterSub) {
+      this.filterSub.unsubscribe();
+    }
+
+    this.filterSub = this.productService.getProducts(this.filters, false).subscribe({
+      next: (response: ProductResponse) => {
+        this.products = response.products;
+        this.totalProducts = response.total;
+        this.totalPages = response.totalPages;
+        this.currentPage = response.page;
+        this.itemsPerPage = response.limit;
+        this.loading = false;
+
+        if (this.currentPage > this.totalPages && this.totalPages > 0) {
+          console.warn(
+            `⚠️ Página ${this.currentPage} não existe. Redirecionando para página ${this.totalPages}`,
+          );
+          this.currentPage = this.totalPages;
+          this.filters.page = this.totalPages;
+          this.updateUrlParams();
+          this.loadProducts();
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erro ao carregar produtos:', error);
+        this.loading = false;
+        this.products = [];
+        this.totalProducts = 0;
+        this.totalPages = 1;
+        this.currentPage = 1;
+      },
+    });
+  }
+
+  onFiltersChange(newFilters: ProductFilters): void {
+    const mergedFilters: ProductFilters = {
+      ...this.filters,
+      ...newFilters,
+      page: 1,
+      limit: this.itemsPerPage,
+    };
+
+    Object.keys(mergedFilters).forEach((key) => {
+      const k = key as keyof ProductFilters;
+      if (mergedFilters[k] === undefined || mergedFilters[k] === null || mergedFilters[k] === '') {
+        delete mergedFilters[k];
+      }
+    });
+
+    this.filters = mergedFilters;
+    this.currentPage = 1;
+
+    this.productService.invalidateCache();
+
+    this.updateUrlParams();
+    this.loadProducts();
+  }
+
+  onClearFilters(): void {
+    this.currentPage = 1;
+    this.filters = {
+      sortBy: 'newest',
+      limit: this.itemsPerPage,
+      page: 1,
+      hasDiscount: false,
+      freeShipping: false,
+      inStock: false,
+    };
+    this.productService.invalidateCache();
+    this.updateUrlParams();
+    this.loadProducts();
+  }
+
+  onPageChange(page: number): void {
+    if (page < 1) {
+      page = 1;
+    }
+
+    if (page > this.totalPages) {
+      page = this.totalPages;
+    }
+
+    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+      this.currentPage = page;
+      this.filters.page = page;
+
+      this.updateUrlParams();
+      this.productService.invalidateCache();
+      this.loadProducts();
+    }
+  }
+
+  updateUrlParams(): void {
+    const queryParams: any = {};
+    if (this.filters.search) queryParams['q'] = this.filters.search;
+    if (this.filters.category) queryParams['category'] = this.filters.category;
+    if (this.currentPage > 1) queryParams['page'] = this.currentPage;
+    if (this.filters.sortBy && this.filters.sortBy !== 'newest') {
+      queryParams['sort'] = this.filters.sortBy;
+    }
+    if (this.itemsPerPage !== 12) queryParams['limit'] = this.itemsPerPage;
+    // 🔥 NOVO: state e city na URL
+    if (this.filters.state) queryParams['state'] = this.filters.state;
+    if (this.filters.city) queryParams['city'] = this.filters.city;
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'replace',
+    });
+  }
+
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+}

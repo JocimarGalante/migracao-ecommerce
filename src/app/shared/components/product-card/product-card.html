@@ -1,0 +1,143 @@
+<!-- src/app/shared/components/product-card/product-card.html -->
+<div class="card h-100 product-card border-0 shadow-sm hover-effect">
+  <!-- Imagem e Badges -->
+  <div class="position-relative">
+    <img
+      [src]="getImageUrl()"
+      class="card-img-top product-image"
+      [alt]="product.name"
+      loading="lazy"
+      (error)="product.images[0] = 'https://via.placeholder.com/300x300/667eea/ffffff?text=Sem+Imagem'"
+    />
+
+    <!-- Badge de Desconto -->
+    <span
+      class="position-absolute top-0 start-0 m-2 badge bg-danger discount-badge"
+      *ngIf="getDiscountPercentage() > 0"
+    >
+      <i class="bi bi-tag-fill me-1"></i>
+      -{{ getDiscountPercentage() }}%
+    </span>
+
+    <!-- Badge de Condição -->
+    <span class="position-absolute top-0 end-0 m-2 badge" [class]="getConditionClass()">
+      {{ getConditionBadge() }}
+    </span>
+
+    <!-- Badge de Estoque (Mobile) -->
+    <span
+      class="position-absolute bottom-0 start-0 m-2 badge d-md-none"
+      [class]="getStockClass()"
+      *ngIf="!isInStock() || isLowStock()">
+      {{ getStockStatus() }}
+    </span>
+
+    <!-- Botão de Favorito -->
+    <button
+      class="btn-favorite position-absolute bottom-0 end-0 m-3"
+      (click)="onFavoriteClick($event)"
+      [title]="product.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'"
+      type="button"
+    >
+      <i
+        class="bi"
+        [class.bi-heart]="!product.isFavorite"
+        [class.bi-heart-fill]="product.isFavorite"
+      ></i>
+    </button>
+  </div>
+
+  <div class="card-body">
+    <!-- Localização -->
+    <div class="small text-muted mb-2">
+      <i class="bi bi-geo-alt-fill me-1"></i>{{ product.location }}
+    </div>
+
+    <!-- Título -->
+    <h5 class="card-title text-truncate" [title]="product.name">
+      {{ product.name }}
+    </h5>
+
+    <!-- 🔥 Preços com efeito de desconto -->
+    <div class="mt-2">
+      <!-- Preço Antigo (riscado) - aparece quando há oferta -->
+      <span
+        *ngIf="product.oldPrice && product.oldPrice > product.price"
+        class="text-muted text-decoration-line-through old-price"
+      >
+        {{ formatPrice(product.oldPrice) }}
+      </span>
+
+      <!-- Preço Atual -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold text-primary fs-5" [class.text-danger]="isOnSale()">
+          {{ formatPrice(product.price) }}
+        </span>
+
+        <!-- Badge de Oferta -->
+        <span
+          *ngIf="isOnSale()"
+          class="badge bg-success sale-badge"
+        >
+          <i class="bi bi-zap me-1"></i>
+          Oferta
+        </span>
+      </div>
+
+      <!-- 🔥 Badge de desconto no preço (versão compacta) -->
+      <span
+        *ngIf="getDiscountPercentage() > 0"
+        class="badge bg-danger discount-badge-small mt-1"
+      >
+        <i class="bi bi-tag me-1"></i>
+        {{ getDiscountPercentage() }}% OFF
+      </span>
+    </div>
+
+    <!-- Vendedor -->
+    <div class="d-flex align-items-center mt-2 small">
+      <i class="bi bi-star-fill text-warning me-1"></i>
+      <span class="me-2">{{ getSellerRating() }}</span>
+      <span class="text-muted">({{ getSellerSales() }} vendas)</span>
+    </div>
+
+    <!-- Frete Grátis -->
+    <div class="mt-2" *ngIf="hasFreeShipping()">
+      <span class="badge bg-light text-success border">
+        <i class="bi bi-truck"></i> Frete Grátis
+      </span>
+    </div>
+
+    <!-- Status do Estoque (Desktop) -->
+    <div class="mt-2" *ngIf="!isInStock() || isLowStock()">
+      <span class="badge d-none d-md-inline" [class]="getStockClass()">
+        <i class="bi"
+           [class.bi-x-circle]="!isInStock()"
+           [class.bi-exclamation-triangle]="isLowStock()"
+           [class.bi-check-circle]="isInStock()"></i>
+        {{ getStockStatus() }}
+      </span>
+    </div>
+  </div>
+
+  <div class="card-footer bg-white border-0 pb-3">
+    <!-- Link para detalhe do produto -->
+    <a
+      [routerLink]="[`/produto/${product.id}`]"
+      class="btn w-100 rounded-pill"
+      [class.btn-outline-primary]="isInStock()"
+      [class.btn-secondary]="!isInStock()"
+      [class.disabled]="!isInStock()"
+    >
+      <span *ngIf="isInStock()">
+        <i class="bi bi-eye me-1"></i>
+        Ver detalhes
+        <i class="bi bi-arrow-right-short"></i>
+      </span>
+      <span *ngIf="!isInStock()">
+        <i class="bi bi-x-circle me-1"></i>
+        Indisponível
+      </span>
+    </a>
+  </div>
+</div>

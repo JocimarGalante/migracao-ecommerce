@@ -1,0 +1,156 @@
+<!-- src/app/features/home/home.html -->
+<!-- Banner Principal -->
+<div class="bg-light">
+  <div id="bannerCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner">
+      <!-- 🔥 CORRIGIDO: active apenas no primeiro -->
+      <div class="carousel-item" *ngFor="let banner of banners; let i = index" [class.active]="i === 0">
+        <img
+          [src]="banner.image"
+          class="d-block w-100"
+          style="height: 300px; object-fit: cover"
+          [alt]="banner.title"
+        />
+        <div class="carousel-caption d-none d-md-block">
+          <h2 class="fw-bold">{{ banner.title }}</h2>
+          <p>{{ banner.subtitle }}</p>
+        </div>
+      </div>
+    </div>
+    <button
+      class="carousel-control-prev"
+      type="button"
+      data-bs-target="#bannerCarousel"
+      data-bs-slide="prev"
+    >
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    </button>
+    <button
+      class="carousel-control-next"
+      type="button"
+      data-bs-target="#bannerCarousel"
+      data-bs-slide="next"
+    >
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    </button>
+  </div>
+</div>
+
+<!-- Categorias em Destaque -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Categorias</h2>
+        <p class="text-muted">Encontre o que você procura</p>
+      </div>
+      <a routerLink="/categorias" class="btn btn-outline-primary rounded-pill">
+        Ver todas
+        <i class="bi bi-arrow-right-short"></i>
+      </a>
+    </div>
+
+    <!-- Componente de Categorias -->
+    <app-categories-list [limit]="4"></app-categories-list>
+  </div>
+</section>
+
+<!-- Seção de Destaques -->
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Produtos em Destaque</h2>
+        <p class="text-muted">Os produtos mais procurados do momento</p>
+      </div>
+      <a routerLink="/produtos" class="btn btn-outline-primary rounded-pill">
+        Ver todos
+        <i class="bi bi-arrow-right-short"></i>
+      </a>
+    </div>
+
+    <!-- Lista de Produtos com favoritar -->
+    <app-products [filters]="featuredFilters"></app-products>
+  </div>
+</section>
+
+<!-- 🔥 Categorias Populares - DINÂMICO -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="row align-items-center mb-4">
+      <div class="col-md-6">
+        <h2 class="fw-bold mb-0">Categorias Populares</h2>
+        <p class="text-muted">As categorias mais buscadas do momento</p>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <a routerLink="/categorias" class="btn btn-outline-primary rounded-pill">
+          Explorar todas
+          <i class="bi bi-arrow-right-short"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- 🔥 LOADING -->
+    <div *ngIf="loadingCategories" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Carregando categorias...</span>
+      </div>
+    </div>
+
+    <!-- 🔥 CATEGORIAS DINÂMICAS -->
+    <div *ngIf="!loadingCategories" class="row g-4">
+      <div class="col-lg-3 col-md-4 col-6" *ngFor="let cat of popularCategories; let i = index">
+        <div
+          class="category-card-mini text-center p-4 border rounded-3 hover-effect cursor-pointer"
+          [routerLink]="['/categoria', cat.slug]"
+        >
+          <div class="category-icon-wrapper rounded-circle mx-auto mb-3"
+               [class]="getIconBgClass(i) + ' bg-opacity-10'">
+            <i class="bi fs-1"
+               [class]="cat.icon || 'bi-grid'"
+               [class]="getIconColor(i)"></i>
+          </div>
+          <h6 class="fw-bold mb-1">{{ cat.name }}</h6>
+          <small class="text-muted">{{ formatProductCount(cat.productCount) }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Marcas/Parceiros (Opcional) -->
+<section class="py-4 bg-light border-top">
+  <div class="container">
+    <div class="d-flex justify-content-center align-items-center gap-5 flex-wrap">
+      <span class="text-muted fw-bold">Vendido por:</span>
+      <div class="d-flex align-items-center gap-4">
+        <span class="text-muted">Apple</span>
+        <span class="text-muted">Samsung</span>
+        <span class="text-muted">Nike</span>
+        <span class="text-muted">Adidas</span>
+        <span class="text-muted">Dell</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Newsletter -->
+<section class="py-5 bg-dark text-white">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h4 class="fw-bold">Fique por dentro das ofertas!</h4>
+        <p class="text-white-50">Receba promoções exclusivas e novidades</p>
+      </div>
+      <div class="col-md-6">
+        <div class="input-group">
+          <input type="email" class="form-control form-control-lg" placeholder="Seu melhor email" />
+          <button class="btn btn-primary btn-lg" type="button">
+            <i class="bi bi-envelope me-2"></i>
+            Inscrever
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

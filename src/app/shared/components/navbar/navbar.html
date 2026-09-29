@@ -1,0 +1,459 @@
+<!-- src/app/shared/components/navbar/navbar.html -->
+<nav
+  class="navbar navbar-expand-lg sticky-top bg-white border-bottom"
+  [class.scrolled]="isScrolled"
+>
+  <div class="container-fluid px-3 px-lg-5">
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/home">
+      <span class="fw-bold fs-4 bg-gradient-primary text-transparent">MarketHub</span>
+    </a>
+
+    <!-- Botão Mobile -->
+    <button
+      class="navbar-toggler border-0"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarMain"
+      aria-controls="navbarMain"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Conteúdo Colapsável -->
+    <div class="collapse navbar-collapse" id="navbarMain">
+      <!-- Barra de Pesquisa -->
+      <div class="mx-auto w-100 w-lg-50 px-3 px-lg-4 my-3 my-lg-0">
+        <app-search-bar (search)="onSearch($event)"></app-search-bar>
+      </div>
+
+      <!-- Ícones e Ações -->
+      <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
+        <!-- Minha Loja (visível apenas se tiver loja) -->
+        <a
+          *ngIf="hasStore && storeId"
+          class="btn btn-outline-primary rounded-pill px-3 px-lg-4"
+          [routerLink]="['/loja', storeId]"
+        >
+          <i class="bi bi-shop me-1"></i>
+          <span class="d-none d-md-inline">Minha Loja</span>
+        </a>
+
+        <!-- Favoritos -->
+        <a class="nav-link position-relative" routerLink="/favoritos">
+          <i class="bi bi-heart fs-5"></i>
+          <span
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+            *ngIf="favoritesCount > 0"
+          >
+            {{ favoritesCount }}
+            <span class="visually-hidden">favoritos</span>
+          </span>
+        </a>
+
+        <!-- Carrinho -->
+        <a class="nav-link position-relative" routerLink="/carrinho">
+          <i class="bi bi-cart3 fs-5"></i>
+          <span
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+            *ngIf="cartCount > 0"
+          >
+            {{ cartCount }}
+            <span class="visually-hidden">itens no carrinho</span>
+          </span>
+        </a>
+
+        <!-- 🔥 NOTIFICAÇÕES (aparece apenas para usuários logados) -->
+        <div class="dropdown notifications-dropdown" *ngIf="isLoggedIn">
+          <button
+            class="nav-link position-relative btn btn-link text-dark text-decoration-none p-2"
+            type="button"
+            (click)="toggleNotifications($event)"
+            [attr.aria-expanded]="showNotifications"
+            title="Notificações"
+          >
+            <i class="bi bi-bell fs-5"></i>
+            <span
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              *ngIf="unreadCount > 0"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+              <span class="visually-hidden">não lidas</span>
+            </span>
+          </button>
+
+          <!-- Dropdown de Notificações -->
+          <div
+            class="notifications-menu shadow-lg"
+            *ngIf="showNotifications"
+            (click)="$event.stopPropagation()"
+          >
+            <!-- Header -->
+            <div class="notifications-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                  <i class="bi bi-bell-fill me-2 text-primary"></i>
+                  Notificações
+                  <span class="badge bg-danger ms-2" *ngIf="unreadCount > 0">
+                    {{ unreadCount }}
+                  </span>
+                </h6>
+                <div class="d-flex gap-2">
+                  <button
+                    *ngIf="unreadCount > 0"
+                    class="btn btn-sm btn-link text-primary text-decoration-none p-0"
+                    (click)="markAllAsRead($event)"
+                    title="Marcar todas como lidas"
+                  >
+                    <i class="bi bi-check-all fs-5"></i>
+                  </button>
+                  <button
+                    *ngIf="notifications.length > 0"
+                    class="btn btn-sm btn-link text-danger text-decoration-none p-0"
+                    (click)="clearAllNotifications($event)"
+                    title="Limpar todas"
+                  >
+                    <i class="bi bi-trash fs-5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de Notificações -->
+            <div class="notifications-body">
+              <!-- Sem notificações -->
+              <div *ngIf="notifications.length === 0" class="text-center py-5">
+                <i class="bi bi-bell-slash display-4 text-muted"></i>
+                <p class="text-muted mt-2 mb-0">Nenhuma notificação</p>
+                <small class="text-muted">Você está em dia! 🎉</small>
+              </div>
+
+              <!-- Com notificações -->
+              <div
+                *ngFor="let notification of notifications"
+                class="notification-item"
+                [class.unread]="!notification.read"
+                (click)="onNotificationClick(notification, $event)"
+              >
+                <div class="d-flex gap-3 align-items-start">
+                  <!-- Ícone -->
+                  <div
+                    class="notification-icon-wrapper"
+                    [class.icon-message]="notification.type === 'message'"
+                    [class.icon-order]="notification.type === 'order'"
+                    [class.icon-sale]="notification.type === 'sale'"
+                    [class.icon-review]="notification.type === 'review'"
+                    [class.icon-system]="notification.type === 'system'"
+                  >
+                    <i
+                      class="bi"
+                      [class]="getNotificationIcon(notification.type)"
+                    ></i>
+                  </div>
+
+                  <!-- Conteúdo -->
+                  <div class="flex-grow-1 min-width-0">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                      <strong class="notification-title">{{ notification.title }}</strong>
+                      <button
+                        class="btn btn-sm btn-link text-muted p-0 notification-delete"
+                        (click)="deleteNotification(notification.id, $event)"
+                        title="Remover"
+                      >
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                    <p class="notification-message mb-1">{{ notification.message }}</p>
+                    <small class="text-muted d-flex align-items-center gap-1">
+                      <i class="bi bi-clock"></i>
+                      {{ formatRelativeTime(notification.createdAt) }}
+                    </small>
+                  </div>
+
+                  <!-- Indicador de não lida -->
+                  <div *ngIf="!notification.read" class="notification-dot"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="notifications-footer" *ngIf="notifications.length > 0">
+              <a
+                routerLink="/notificacoes"
+                class="btn btn-sm btn-link w-100 text-decoration-none fw-bold"
+                (click)="showNotifications = false"
+              >
+                Ver todas as notificações
+                <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔥 Avatar/Usuário com suporte a imagem -->
+        <div class="dropdown">
+          <button
+            class="btn btn-link text-dark text-decoration-none dropdown-toggle d-flex align-items-center gap-2"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            <!-- 🔥 Avatar com imagem do usuário -->
+            <div class="user-avatar-wrapper">
+              <!-- Foto do usuário (logado com avatar) -->
+              <img
+                *ngIf="isLoggedIn && userAvatar"
+                [src]="userAvatar"
+                [alt]="userName"
+                class="user-avatar-img"
+                (error)="onAvatarError()"
+              />
+              <!-- Iniciais do nome (logado sem avatar) -->
+              <div
+                *ngIf="isLoggedIn && !userAvatar"
+                class="user-avatar-initials"
+              >
+                {{ getInitials(userName) }}
+              </div>
+              <!-- Ícone de visitante (deslogado) -->
+              <div
+                *ngIf="!isLoggedIn"
+                class="user-avatar-guest"
+              >
+                <i class="bi bi-person-circle"></i>
+              </div>
+            </div>
+            <span class="d-none d-lg-block" *ngIf="!isLoggedIn">Minha Conta</span>
+            <span class="d-none d-lg-block" *ngIf="isLoggedIn">{{ userName }}</span>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+            <!-- ========================================== -->
+            <!-- USUÁRIO LOGADO -->
+            <!-- ========================================== -->
+            <ng-container *ngIf="isLoggedIn">
+              <!-- 🔥 Cabeçalho do usuário no dropdown -->
+              <li class="dropdown-header-user">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dropdown-avatar-wrapper">
+                    <img
+                      *ngIf="userAvatar"
+                      [src]="userAvatar"
+                      [alt]="userName"
+                      class="dropdown-avatar-img"
+                      (error)="onAvatarError()"
+                    />
+                    <div
+                      *ngIf="!userAvatar"
+                      class="dropdown-avatar-initials"
+                    >
+                      {{ getInitials(userName) }}
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 min-width-0">
+                    <strong class="text-dark d-block text-truncate">{{ userName }}</strong>
+                    <small class="text-muted" *ngIf="hasStore">
+                      <i class="bi bi-shop me-1"></i>Vendedor
+                    </small>
+                    <small class="text-muted" *ngIf="!hasStore">
+                      <i class="bi bi-person me-1"></i>Cliente
+                    </small>
+                  </div>
+                </div>
+              </li>
+
+              <li><hr class="dropdown-divider" /></li>
+
+              <!-- Perfil -->
+              <li>
+                <a class="dropdown-item" routerLink="/perfil">
+                  <i class="bi bi-person me-2"></i>Meu Perfil
+                </a>
+              </li>
+
+              <!-- Meus Pedidos -->
+              <li>
+                <a class="dropdown-item" routerLink="/pedidos">
+                  <i class="bi bi-box-seam me-2"></i>Meus Pedidos
+                </a>
+              </li>
+
+              <!-- Minhas Vendas -->
+              <li>
+                <a class="dropdown-item" routerLink="/vendas">
+                  <i class="bi bi-graph-up-arrow me-2"></i>Minhas Vendas
+                </a>
+              </li>
+
+              <!-- Favoritos -->
+              <li>
+                <a class="dropdown-item" routerLink="/favoritos">
+                  <i class="bi bi-heart me-2"></i>Favoritos
+                </a>
+              </li>
+
+              <!-- Chat -->
+              <li>
+                <a class="dropdown-item" routerLink="/chat">
+                  <i class="bi bi-chat-dots me-2"></i>Mensagens
+                </a>
+              </li>
+
+              <li><hr class="dropdown-divider" /></li>
+
+              <!-- ========================================== -->
+              <!-- SEÇÃO DA LOJA -->
+              <!-- ========================================== -->
+              <li *ngIf="!hasStore">
+                <a class="dropdown-item fw-bold text-primary" routerLink="/criar-loja">
+                  <i class="bi bi-shop me-2"></i>Criar Loja
+                  <span class="badge bg-primary ms-2">Novo</span>
+                </a>
+              </li>
+
+              <li *ngIf="hasStore && storeId">
+                <a class="dropdown-item fw-bold" [routerLink]="['/loja', storeId]">
+                  <i class="bi bi-shop me-2"></i>Minha Loja
+                </a>
+              </li>
+
+              <li *ngIf="hasStore && storeId">
+                <a class="dropdown-item" [routerLink]="[`/loja/${storeId}/produto/novo`]">
+                  <i class="bi bi-plus-circle me-2"></i>Adicionar Produto
+                </a>
+              </li>
+
+              <li><hr class="dropdown-divider" /></li>
+
+              <!-- Sair -->
+              <li>
+                <a class="dropdown-item text-danger" (click)="logout()">
+                  <i class="bi bi-box-arrow-right me-2"></i>Sair
+                </a>
+              </li>
+            </ng-container>
+
+            <!-- ========================================== -->
+            <!-- USUÁRIO DESLOGADO -->
+            <!-- ========================================== -->
+            <ng-container *ngIf="!isLoggedIn">
+              <li>
+                <a class="dropdown-item" routerLink="/login">
+                  <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" routerLink="/registrar">
+                  <i class="bi bi-person-plus me-2"></i>Cadastrar
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item text-muted" routerLink="/criar-loja">
+                  <i class="bi bi-shop me-2"></i>Quero Vender
+                </a>
+              </li>
+            </ng-container>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ========================================== -->
+<!-- CATEGORIAS NAVBAR SECUNDÁRIA (Desktop) -->
+<!-- ========================================== -->
+<div class="bg-light border-bottom d-none d-lg-block">
+  <div class="container-fluid px-5">
+    <ul class="nav nav-underline justify-content-start gap-4 small">
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/eletronicos">
+          <i class="bi bi-phone me-1"></i>Eletrônicos
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/moda">
+          <i class="bi bi-bag me-1"></i>Moda
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/casa-decoracao">
+          <i class="bi bi-house me-1"></i>Casa e Decoração
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/esportes">
+          <i class="bi bi-bicycle me-1"></i>Esportes
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/automoveis">
+          <i class="bi bi-car-front me-1"></i>Automóveis
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark" routerLink="/categoria/imoveis">
+          <i class="bi bi-building me-1"></i>Imóveis
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-dark fw-bold" routerLink="/categorias">
+          <i class="bi bi-grid-3x3-gap-fill me-1"></i>Todas
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MENU MOBILE DE CATEGORIAS -->
+<!-- ========================================== -->
+<div class="d-lg-none bg-white border-bottom py-2">
+  <div class="container-fluid px-3">
+    <div class="d-flex gap-2 overflow-auto pb-2" style="scrollbar-width: thin">
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/eletronicos"
+      >
+        <i class="bi bi-phone me-1"></i>Eletrônicos
+      </a>
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/moda"
+      >
+        <i class="bi bi-bag me-1"></i>Moda
+      </a>
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/casa-decoracao"
+      >
+        <i class="bi bi-house me-1"></i>Casa
+      </a>
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/esportes"
+      >
+        <i class="bi bi-bicycle me-1"></i>Esportes
+      </a>
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/automoveis"
+      >
+        <i class="bi bi-car-front me-1"></i>Autos
+      </a>
+      <a
+        class="btn btn-outline-secondary btn-sm rounded-pill flex-shrink-0"
+        routerLink="/categoria/imoveis"
+      >
+        <i class="bi bi-building me-1"></i>Imóveis
+      </a>
+      <a class="btn btn-primary btn-sm rounded-pill flex-shrink-0" routerLink="/categorias">
+        <i class="bi bi-grid-3x3-gap-fill me-1"></i>Todas
+      </a>
+    </div>
+  </div>
+</div>
